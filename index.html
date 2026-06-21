@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoTrack AI — Carbon Footprint Tracker</title>
+  <meta name="description" content="Track, understand, and reduce your daily carbon footprint with AI-powered personalised insights, built for India." />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Skip link for keyboard / screen-reader users -->
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Visually-hidden live region for dynamic announcements -->
+  <div id="sr-announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+  <div class="app">
+
+    <header>
+      <div class="logo" aria-hidden="true">🌱</div>
+      <h1>EcoTrack AI</h1>
+      <p>Understand, track, and reduce your carbon footprint with personalised AI insights</p>
+    </header>
+
+    <main id="main-content">
+
+      <!-- API Key Setup -->
+      <section id="api-setup" class="card" aria-labelledby="api-setup-heading">
+        <h2 id="api-setup-heading">🔑 Gemini API Key Setup</h2>
+        <p>
+          Enter your free Google Gemini API key to enable AI-powered insights. Get one free at
+          <strong>aistudio.google.com</strong> → Get API Key. Your key is stored only in your browser
+          and is never sent anywhere except Google's Gemini API.
+        </p>
+        <div class="api-row">
+          <label for="api-key-input" class="sr-only">Gemini API key</label>
+          <input
+            type="password"
+            id="api-key-input"
+            name="apiKey"
+            placeholder="Paste your Gemini API key here..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" class="btn btn-green" id="save-api-key-btn">Save Key</button>
+        </div>
+        <div id="api-alert" class="alert" role="status" aria-live="polite"></div>
+      </section>
+
+      <!-- Tabs -->
+      <nav class="tabs" role="tablist" aria-label="EcoTrack sections">
+        <button type="button" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-track" id="tabbtn-track" data-tab="track">📊 Track</button>
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-ai" id="tabbtn-ai" data-tab="ai">🤖 AI Coach</button>
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-tips" id="tabbtn-tips" data-tab="tips">💡 Tips</button>
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-history" id="tabbtn-history" data-tab="history">📅 History</button>
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-badges" id="tabbtn-badges" data-tab="badges">🏅 Badges</button>
+      </nav>
+
+      <!-- ═══ TAB: TRACK ═══ -->
+      <section id="tab-track" class="tab-panel active" role="tabpanel" aria-labelledby="tabbtn-track" tabindex="0">
+
+        <div id="track-alert" class="alert" role="status" aria-live="polite"></div>
+
+        <form id="footprint-form" novalidate>
+
+          <fieldset class="card">
+            <legend>🚗 Transport</legend>
+            <div class="form-grid">
+              <div class="field">
+                <label for="t-mode">Mode of Transport</label>
+                <select id="t-mode" name="mode">
+                  <option value="car_petrol">Car (Petrol)</option>
+                  <option value="car_diesel">Car (Diesel)</option>
+                  <option value="car_electric">Car (Electric)</option>
+                  <option value="bike_petrol">Bike / Scooter (Petrol)</option>
+                  <option value="bus">Bus</option>
+                  <option value="train">Train / Metro</option>
+                  <option value="flight_domestic">Flight (Domestic)</option>
+                  <option value="walk_cycle">Walk / Cycle</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="t-km">Distance (km)</label>
+                <input type="number" id="t-km" name="km" placeholder="e.g. 20" min="0" max="2000" step="0.1" inputmode="decimal" />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="card">
+            <legend>🍽️ Food</legend>
+            <div class="form-grid">
+              <div class="field">
+                <label for="f-diet">Diet Type Today</label>
+                <select id="f-diet" name="diet">
+                  <option value="vegan">Vegan</option>
+                  <option value="vegetarian" selected>Vegetarian</option>
+                  <option value="chicken">Non-Veg (Chicken/Fish)</option>
+                  <option value="beef">Non-Veg (Beef/Lamb)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-waste">Food Waste</label>
+                <select id="f-waste" name="waste">
+                  <option value="none">No waste</option>
+                  <option value="little">A little</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="lot">A lot</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="card">
+            <legend>⚡ Home Energy</legend>
+            <div class="form-grid">
+              <div class="field">
+                <label for="e-kwh">Electricity Used (kWh today)</label>
+                <input type="number" id="e-kwh" name="kwh" placeholder="e.g. 5" min="0" max="500" step="0.1" inputmode="decimal" />
+              </div>
+              <div class="field">
+                <label for="e-fuel">Cooking Fuel</label>
+                <select id="e-fuel" name="fuel">
+                  <option value="lpg">LPG / Gas</option>
+                  <option value="electric">Electric</option>
+                  <option value="solar">Solar</option>
+                  <option value="firewood">Firewood</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="card">
+            <legend>🛍️ Shopping &amp; Lifestyle</legend>
+            <div class="form-grid">
+              <div class="field">
+                <label for="s-orders">Online Shopping Orders</label>
+                <select id="s-orders" name="orders">
+                  <option value="0">None today</option>
+                  <option value="1">1 order</option>
+                  <option value="2">2 orders</option>
+                  <option value="3">3+ orders</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="s-plastic">Plastic Use</label>
+                <select id="s-plastic" name="plastic">
+                  <option value="none">Avoided plastic</option>
+                  <option value="little">1–2 plastic items</option>
+                  <option value="moderate">Several plastic items</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="action-row">
+            <button type="button" class="btn btn-green" id="calc-btn">🌍 Calculate My Footprint</button>
+            <button type="button" class="btn btn-ghost" id="clear-btn">🗑 Clear</button>
+          </div>
+        </form>
+
+        <!-- Result -->
+        <section id="result-card" class="card result-card" aria-labelledby="result-heading" style="display:none;">
+          <h2 id="result-heading">📈 Today's Footprint</h2>
+          <div class="score-section">
+            <div class="score-ring" id="score-ring" role="img" aria-label="Carbon footprint score visual">
+              <span class="score-num" id="score-num">0</span>
+              <span class="score-unit">kg CO₂</span>
+            </div>
+            <div class="score-details">
+              <h3 id="score-label">Calculating...</h3>
+              <p id="score-desc">–</p>
+            </div>
+          </div>
+          <div class="breakdown" id="breakdown"></div>
+          <div class="action-row" style="margin-top:16px;">
+            <button type="button" class="btn btn-green" id="save-entry-btn">💾 Save Entry</button>
+            <button type="button" class="btn btn-cyan" id="ai-tip-btn">🤖 Get AI Tip</button>
+          </div>
+        </section>
+      </section>
+
+      <!-- ═══ TAB: AI COACH ═══ -->
+      <section id="tab-ai" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-ai" tabindex="0" hidden>
+        <div class="card">
+          <h2>🤖 AI Eco Coach</h2>
+          <p class="muted-text">
+            Ask anything about your carbon footprint or get personalised tips based on your tracked data.
+          </p>
+          <div class="quick-actions" role="group" aria-label="Suggested questions">
+            <button type="button" class="quick-btn" data-prompt="How can I reduce my transport emissions?">🚗 Reduce transport</button>
+            <button type="button" class="quick-btn" data-prompt="What are easy food swaps to lower my carbon footprint?">🥗 Food tips</button>
+            <button type="button" class="quick-btn" data-prompt="How much CO2 does a typical Indian household emit per day?">🏠 India average</button>
+            <button type="button" class="quick-btn" data-prompt="Give me a 7-day eco challenge to reduce my footprint.">📅 7-day challenge</button>
+            <button type="button" class="quick-btn" data-prompt="What are the biggest sources of carbon emissions in daily life?">🌍 Top sources</button>
+          </div>
+          <div class="chat-box" id="chat-box" role="log" aria-label="Conversation with AI Eco Coach" aria-live="polite"></div>
+          <div class="chat-input-row">
+            <label for="chat-input" class="sr-only">Message the AI Eco Coach</label>
+            <input type="text" id="chat-input" placeholder="Ask your AI Eco Coach..." autocomplete="off" />
+            <button type="button" class="btn btn-green" id="chat-send-btn">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ TAB: TIPS ═══ -->
+      <section id="tab-tips" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-tips" tabindex="0" hidden>
+        <div class="card">
+          <h2>💡 Smart Eco Tips</h2>
+          <div class="tips-grid" id="tips-grid"></div>
+        </div>
+        <div class="card">
+          <h2>🎯 Your Personalised Action Plan</h2>
+          <div id="action-plan">
+            <p class="muted-text">Track at least one day to get a personalised action plan from AI.</p>
+          </div>
+          <button type="button" class="btn btn-cyan" style="margin-top:12px;" id="action-plan-btn">⚡ Generate with AI</button>
+        </div>
+      </section>
+
+      <!-- ═══ TAB: HISTORY ═══ -->
+      <section id="tab-history" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-history" tabindex="0" hidden>
+        <div class="card">
+          <h2>📅 Your Tracking History</h2>
+          <div class="streak-row">
+            <div class="streak-num" id="streak-num">0</div>
+            <div>
+              <div class="streak-title">Day Streak 🔥</div>
+              <div class="muted-text">Consecutive days tracked</div>
+            </div>
+          </div>
+          <p id="history-empty" class="muted-text">No entries yet. Start tracking to see your history.</p>
+          <ul class="history-list" id="history-list"></ul>
+        </div>
+        <div class="card">
+          <h2>📊 Weekly Trend</h2>
+          <div class="chart-wrap">
+            <canvas id="trend-chart" role="img" aria-label="Line chart of daily carbon footprint over the last 14 tracked days"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ TAB: BADGES ═══ -->
+      <section id="tab-badges" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-badges" tabindex="0" hidden>
+        <div class="card">
+          <h2>🏅 Eco Badges</h2>
+          <p class="muted-text">Earn badges by building eco-friendly habits.</p>
+          <div class="badges-grid" id="badges-grid"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      EcoTrack AI — Built for Ideathon 2026 · Challenge 3: Improve Everyday Life with AI<br/>
+      Powered by Google Gemini API · Carbon data based on IPCC &amp; Indian grid emission factors<br/>
+      <a href="tests.html">Run test suite</a>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>

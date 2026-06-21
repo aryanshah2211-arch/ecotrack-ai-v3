@@ -1,0 +1,248 @@
+/* ═══════════════════════════════════════════════════
+   EcoTrack AI — Stylesheet
+   ═══════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0a0f1e;
+  --surface:   #111827;
+  --surface2:  #1a2235;
+  --border:    #1e3a2f;
+  --green:     #22c55e;
+  --green-dim: #15803d;
+  --cyan:      #06b6d4;
+  --amber:     #f59e0b;
+  --red:       #ef4444;
+  --text:      #f1f5f9;
+  --muted:     #94a3b8;
+  --radius:    14px;
+  --focus-ring: #60a5fa;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── Accessibility utilities ── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; top: -50px; left: 8px;
+  background: var(--green); color: #000;
+  padding: 10px 16px; border-radius: 6px;
+  font-weight: 700; z-index: 1000; transition: top .2s;
+}
+.skip-link:focus { top: 8px; }
+
+/* Visible focus outline for all interactive elements (keyboard users) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.muted-text { color: var(--muted); font-size: 0.87rem; }
+
+/* ── Layout ── */
+.app { max-width: 860px; margin: 0 auto; padding: 0 16px 60px; }
+
+/* ── Header ── */
+header {
+  text-align: center;
+  padding: 36px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+header .logo { font-size: 2rem; margin-bottom: 4px; }
+header h1 { font-size: 1.7rem; font-weight: 700; color: var(--green); }
+header p  { color: var(--muted); font-size: 0.95rem; margin-top: 4px; }
+
+/* ── API Key Setup ── */
+#api-setup {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+#api-setup h2 { font-size: 1rem; color: var(--cyan); margin-bottom: 10px; }
+#api-setup p  { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; }
+.api-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.api-row input {
+  flex: 1; min-width: 200px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: 0.9rem;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 6px; margin-bottom: 24px;
+  background: var(--surface); border-radius: var(--radius);
+  padding: 6px; border: 1px solid var(--border);
+}
+.tab-btn {
+  flex: 1; padding: 10px 6px; border: none; border-radius: 10px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  font-size: 0.82rem; font-weight: 600; transition: all .2s;
+}
+.tab-btn.active { background: var(--green-dim); color: #fff; }
+.tab-btn:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+.tab-panel[hidden] { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Cards / Fieldsets ── */
+.card, fieldset.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 22px; margin-bottom: 18px;
+}
+.card h2 { font-size: 1.05rem; margin-bottom: 16px; color: var(--cyan); display: flex; align-items: center; gap: 8px; }
+fieldset.card legend {
+  font-size: 1.05rem; color: var(--cyan); padding: 0 4px; font-weight: 600;
+}
+
+/* ── Form Grid ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+@media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
+.field label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 5px; }
+.field select, .field input[type="number"] {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 0.9rem;
+}
+
+/* ── Buttons ── */
+.action-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 11px 22px; border: none; border-radius: 8px;
+  font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all .2s;
+}
+.btn-green  { background: var(--green); color: #000; }
+.btn-green:hover { background: #16a34a; }
+.btn-cyan   { background: var(--cyan); color: #000; }
+.btn-cyan:hover { background: #0891b2; }
+.btn-ghost  { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--green); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Score Ring ── */
+.result-card { margin-top: 20px; }
+.score-section { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.score-ring {
+  width: 110px; height: 110px; border-radius: 50%; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 5px solid var(--green); background: var(--surface2);
+}
+.score-ring .score-num  { font-size: 1.7rem; font-weight: 800; color: var(--green); }
+.score-ring .score-unit { font-size: 0.65rem; color: var(--muted); }
+.score-details { flex: 1; }
+.score-details h3 { font-size: 1.05rem; margin-bottom: 6px; }
+.score-details p  { color: var(--muted); font-size: 0.87rem; }
+
+/* ── Breakdown bars ── */
+.breakdown { margin-top: 14px; }
+.bar-row { margin-bottom: 10px; }
+.bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-bottom: 3px; }
+.bar-track { background: var(--surface2); border-radius: 99px; height: 8px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 99px; transition: width .6s ease; }
+
+/* ── History ── */
+.streak-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.streak-num { font-size: 2.4rem; font-weight: 800; color: var(--amber); }
+.streak-title { font-weight: 700; }
+.history-list { list-style: none; margin-top: 8px; }
+.history-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem;
+}
+.history-item:last-child { border-bottom: none; }
+.history-date { color: var(--muted); }
+.history-score { font-weight: 700; }
+
+/* ── AI Chat ── */
+.chat-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; height: 320px; overflow-y: auto;
+  padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;
+}
+.msg { max-width: 82%; padding: 10px 14px; border-radius: 12px; font-size: 0.87rem; line-height: 1.5; }
+.msg.ai   { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; }
+.msg.user { background: var(--green-dim); align-self: flex-end; color: #fff; }
+.msg.ai .msg-label  { font-size: 0.72rem; color: var(--cyan); font-weight: 700; margin-bottom: 3px; }
+.msg.user .msg-label{ font-size: 0.72rem; color: #a7f3d0; font-weight: 700; margin-bottom: 3px; }
+.chat-input-row { display: flex; gap: 8px; }
+.chat-input-row input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 11px 14px; border-radius: 8px; font-size: 0.9rem;
+}
+.typing { color: var(--muted); font-style: italic; font-size: 0.83rem; }
+
+/* ── Quick Actions ── */
+.quick-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.quick-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); padding: 6px 12px; border-radius: 20px;
+  font-size: 0.78rem; cursor: pointer; transition: all .2s;
+}
+.quick-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* ── Tips Grid ── */
+.tips-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .tips-grid { grid-template-columns: 1fr; } }
+.tip-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px;
+}
+.tip-card .tip-icon { font-size: 1.4rem; margin-bottom: 6px; }
+.tip-card h4 { font-size: 0.88rem; color: var(--green); margin-bottom: 4px; }
+.tip-card p  { font-size: 0.8rem; color: var(--muted); }
+.tip-card .tip-saving { font-size: 0.75rem; color: var(--amber); margin-top: 5px; font-weight: 600; }
+
+/* ── Badges ── */
+.badges-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+.badge {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px; text-align: center; min-width: 90px;
+}
+.badge.earned { border-color: var(--green); }
+.badge .badge-icon { font-size: 1.6rem; }
+.badge .badge-name { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+.badge.earned .badge-name { color: var(--green); }
+
+/* ── Alert ── */
+.alert {
+  padding: 12px 16px; border-radius: 8px; font-size: 0.85rem;
+  margin-bottom: 14px; display: none;
+}
+.alert.success { background: #14532d44; border: 1px solid var(--green); color: var(--green); display: block; }
+.alert.error   { background: #7f1d1d44; border: 1px solid var(--red);   color: var(--red);   display: block; }
+
+/* ── Chart ── */
+.chart-wrap { position: relative; height: 200px; margin-top: 10px; }
+
+/* ── Footer ── */
+footer {
+  text-align: center; color: var(--muted); font-size: 0.78rem;
+  padding-top: 20px; border-top: 1px solid var(--border); margin-top: 40px;
+}
+footer a { color: var(--cyan); }
+
+/* ── Reduced motion support ── */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}

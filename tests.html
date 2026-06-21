@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoTrack AI — Test Suite</title>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background:#0a0f1e; color:#f1f5f9; padding: 24px; max-width: 800px; margin: 0 auto; }
+    h1 { color:#22c55e; margin-bottom: 6px; }
+    p.sub { color:#94a3b8; margin-bottom: 24px; }
+    #summary { padding: 14px 18px; border-radius: 10px; font-weight: 700; margin-bottom: 20px; font-size: 1.05rem; }
+    #summary.pass { background:#14532d44; border:1px solid #22c55e; color:#22c55e; }
+    #summary.fail { background:#7f1d1d44; border:1px solid #ef4444; color:#ef4444; }
+    .group { margin-bottom: 18px; }
+    .group h2 { font-size: 0.95rem; color:#06b6d4; margin-bottom: 8px; border-bottom: 1px solid #1e3a2f; padding-bottom: 6px; }
+    .test { padding: 8px 12px; border-radius: 6px; margin-bottom: 4px; font-size: 0.85rem; display: flex; justify-content: space-between; gap: 12px; }
+    .test.pass { background: #14532d22; }
+    .test.fail { background: #7f1d1d33; }
+    .test .status { font-weight: 700; flex-shrink: 0; }
+    .test.pass .status { color: #22c55e; }
+    .test.fail .status { color: #ef4444; }
+    .test .detail { color:#94a3b8; font-size: 0.78rem; margin-top: 2px; }
+    a { color:#06b6d4; }
+  </style>
+</head>
+<body>
+  <h1>🧪 EcoTrack AI — Test Suite</h1>
+  <p class="sub">Self-contained assertion tests for the emission calculation engine, validation layer, and storage layer. No external test framework required — open this file directly in a browser to run.</p>
+
+  <div id="summary">Running tests...</div>
+  <div id="results"></div>
+
+  <p style="margin-top:24px;"><a href="index.html">← Back to app</a></p>
+
+  <script src="app.js"></script>
+  <script>
+    'use strict';
+
+    // ── Minimal assertion test runner ──────────────────────────
+    const results = [];
+    let currentGroup = '';
+
+    function group(name) { currentGroup = name; }
+
+    function assert(description, condition, detail) {
+      results.push({ group: currentGroup, description, pass: !!condition, detail: detail || '' });
+    }
+
+    function assertEqual(description, actual, expected) {
+      const pass = JSON.stringify(actual) === JSON.stringify(expected);
+      assert(description, pass, pass ? '' : `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    }
+
+    function assertThrows(description, fn) {
+      let threw = false;
+      try { fn(); } catch (e) { threw = true; }
+      assert(description, threw, threw ? '' : 'expected function to throw, but it did not');
+    }
+
+    function assertClose(description, actual, expected, tolerance = 0.01) {
+      const pass = Math.abs(actual - expected) <= tolerance;
+      assert(description, pass, pass ? '' : `expected ~${expected} (±${tolerance}), got ${actual}`);
+    }
+
+    // ── Load engine under test ─────────────────────────────────
+    const { emissionEngine, validate, store } = window.EcoTrack;
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: emissionEngine.calculate — happy paths
+    // ═══════════════════════════════════════════════════════════
+    group('emissionEngine.calculate — happy paths');
+
+    {
+      const r = emissionEngine.calculate({
+        mode: 'walk_cycle', km: 10,
+        diet: 'vegan', waste: 'none',
+        kwh: 0, fuel: 'solar',
+        orders: '0', plastic: 'none'
+      });
+      assertClose('Best-case (walk/cycle, vegan, solar, no shopping) ≈ 1.5 kg CO2', r.total, 1.5);
+      assertEqual('Best-case transport emission is 0', r.transport, 0);
+    }
+
+    {
+      const r = emissionEngine.calculate({
+        mode: 'car_petrol', km: 20,
+        diet: 'beef', waste: 'lot',
+        kwh: 10, fuel: 'firewood',
+        orders: '3', plastic: 'moderate'
+      });
+      // transport: 0.192*20=3.84, food: 7.5+1.0=8.5, energy: 10*0.82+2.0=10.2, shopping: 1.8+0.3=2.1
+      assertClose('Worst-case scenario totals correctly', r.total, 3.84 + 8.5 + 10.2 + 2.1);
+    }
+
+    {
+      const r = emissionEngine.calculate({
+        mode: 'bus', km: 15,
+        diet: 'vegetarian', waste: 'little',
+        kwh: 5, fuel: 'lpg',
+        orders: '1', plastic: 'little'
+      });
+      assertClose('Typical day scenario transport = 0.405', r.transport, 0.027 * 15);
+      assertClose('Typical day scenario food = 2.7', r.food, 2.5 + 0.2);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: emissionEngine.calculate — input robustness
+    // ═══════════════════════════════════════════════════════════
+    group('emissionEngine.calculate — input robustness');
+
+    {
+      const r = emissionEngine.calculate({
+        mode: 'car_petrol', km: '', // empty string distance
+        diet: 'vegan', waste: 'none',
+        kwh: '', fuel: 'solar',
+        orders: '0', plastic: 'none'
+      });
+      assertEqual('Empty-string numeric fields default to 0, not NaN', Number.isNaN(r.total), false);
+      assertClose('Empty km/kwh treated as 0', r.total, 1.5);
+    }
+
+    {
+      const r = emissionEngine.calculate({
+        mode: 'car_petrol', km: -50, // negative distance
+        diet: 'vegan', waste: 'none',
+        kwh: -5, fuel: 'solar',
+        orders: '0', plastic: 'none'
+      });
+      assert('Negative km does not produce negative emissions', r.transport >= 0, `got transport=${r.transport}`);
+      assert('Negative kWh does not produce negative emissions', r.energy >= 0, `got energy=${r.energy}`);
+    }
+
+    {
+      const r = emissionEngine.calculate({
+        mode: 'car_petrol', km: 'not-a-number',
+        diet: 'vegan', waste: 'none',
+        kwh: 'abc', fuel: 'solar',
+        orders: '0', plastic: 'none'
+      });
+      assert('Non-numeric km string falls back safely (no NaN)', Number.isNaN(r.total), false);
+    }
+
+    assertThrows('Unknown transport mode throws RangeError (rejected, not silently NaN)', () => {
+      emissionEngine.calculate({ mode: 'rocket_ship', km: 10, diet: 'vegan', waste: 'none', kwh: 0, fuel: 'solar', orders: '0', plastic: 'none' });
+    });
+
+    assertThrows('Unknown diet value throws RangeError', () => {
+      emissionEngine.calculate({ mode: 'bus', km: 10, diet: 'carnivore-extreme', waste: 'none', kwh: 0, fuel: 'solar', orders: '0', plastic: 'none' });
+    });
+
+    assertThrows('Empty/missing mode throws rather than silently producing NaN', () => {
+      emissionEngine.calculate({ mode: '', km: 10, diet: 'vegan', waste: 'none', kwh: 0, fuel: 'solar', orders: '0', plastic: 'none' });
+    });
+
+    {
+      const r = emissionEngine.calculate({
+        mode: 'car_petrol', km: 999999, // absurdly large distance
+        diet: 'vegan', waste: 'none',
+        kwh: 0, fuel: 'solar',
+        orders: '0', plastic: 'none'
+      });
+      assertClose(
+        'Absurdly large km is clamped to INPUT_LIMITS.MAX_KM_PER_DAY, not used raw',
+        r.transport,
+        emissionEngine.EF.transport.car_petrol * emissionEngine.INPUT_LIMITS.MAX_KM_PER_DAY
+      );
+    }
+
+    assertThrows('calculate(null) throws TypeError instead of crashing on property access', () => {
+      emissionEngine.calculate(null);
+    });
+
+    assertThrows('calculate(undefined) throws TypeError', () => {
+      emissionEngine.calculate(undefined);
+    });
+
+    assertThrows('calculate("string") throws TypeError for non-object input', () => {
+      emissionEngine.calculate('not an object');
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: emissionEngine.classify
+    // ═══════════════════════════════════════════════════════════
+    group('emissionEngine.classify');
+
+    assertEqual('1.0 kg classifies as excellent', emissionEngine.classify(1.0).tier, 'excellent');
+    assertEqual('3.0 kg classifies as good', emissionEngine.classify(3.0).tier, 'good');
+    assertEqual('5.0 kg classifies as average', emissionEngine.classify(5.0).tier, 'average');
+    assertEqual('8.0 kg classifies as high', emissionEngine.classify(8.0).tier, 'high');
+    assertEqual('15.0 kg classifies as very_high', emissionEngine.classify(15.0).tier, 'very_high');
+    assertEqual('Boundary 2.0 kg classifies as good (not excellent)', emissionEngine.classify(2.0).tier, 'good');
+    assertEqual('Boundary 0 kg classifies as excellent', emissionEngine.classify(0).tier, 'excellent');
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: emissionEngine.calcStreak
+    // ═══════════════════════════════════════════════════════════
+    group('emissionEngine.calcStreak');
+
+    {
+      const today = new Date('2026-06-20T12:00:00Z');
+      const history = [
+        { date: '2026-06-20', total: 5 },
+        { date: '2026-06-19', total: 4 },
+        { date: '2026-06-18', total: 6 }
+      ];
+      assertEqual('3 consecutive days ending today = streak of 3', emissionEngine.calcStreak(history, today), 3);
+    }
+
+    {
+      const today = new Date('2026-06-20T12:00:00Z');
+      const history = [
+        { date: '2026-06-20', total: 5 },
+        { date: '2026-06-18', total: 6 } // gap on the 19th
+      ];
+      assertEqual('Gap in history breaks the streak at 1', emissionEngine.calcStreak(history, today), 1);
+    }
+
+    assertEqual('Empty history = streak of 0', emissionEngine.calcStreak([]), 0);
+    assertEqual('Non-array input = streak of 0 (defensive)', emissionEngine.calcStreak(null), 0);
+
+    {
+      const today = new Date('2026-06-20T12:00:00Z');
+      const history = [{ date: '2026-06-01', total: 5 }]; // no entry covering today
+      assertEqual('History not including today = streak of 0', emissionEngine.calcStreak(history, today), 0);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: validate.sanitizeText
+    // ═══════════════════════════════════════════════════════════
+    group('validate.sanitizeText (XSS / injection guard)');
+
+    assertEqual(
+      'Strips <script> tags from user input',
+      validate.sanitizeText('<script>alert(1)</script>Hello'),
+      'alert(1)Hello'
+    );
+    assertEqual(
+      'Strips arbitrary HTML tags',
+      validate.sanitizeText('<b>bold</b> and <img src=x onerror=alert(1)>'),
+      'bold and '
+    );
+    assertEqual('Trims whitespace', validate.sanitizeText('   hi there   '), 'hi there');
+    assert('Caps length at maxLen', validate.sanitizeText('a'.repeat(1000), 50).length <= 50, '');
+    assertEqual('Non-string input returns empty string', validate.sanitizeText(12345), '');
+    assertEqual('Non-string input (object) returns empty string', validate.sanitizeText({ a: 1 }), '');
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: validate.looksLikeApiKey
+    // ═══════════════════════════════════════════════════════════
+    group('validate.looksLikeApiKey');
+
+    assert('Plausible Gemini key format passes', validate.looksLikeApiKey('AIzaSyDUMMY1234567890abcdefghij'), '');
+    assert('Empty string rejected', !validate.looksLikeApiKey(''), '');
+    assert('Too-short string rejected', !validate.looksLikeApiKey('short'), '');
+    assert('Key with spaces rejected', !validate.looksLikeApiKey('not a real key with spaces here'), '');
+    assert('Non-string input rejected without throwing', !validate.looksLikeApiKey(null), '');
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: validate.isAllowed (whitelist enforcement)
+    // ═══════════════════════════════════════════════════════════
+    group('validate.isAllowed');
+
+    assert('Known transport mode is allowed', validate.isAllowed('mode', 'bus'), '');
+    assert('Unknown transport mode is rejected', !validate.isAllowed('mode', 'teleporter'), '');
+    assert('Unknown field name is rejected safely', !validate.isAllowed('not_a_field', 'x'), '');
+
+    // ═══════════════════════════════════════════════════════════
+    // GROUP: store (localStorage layer)
+    // ═══════════════════════════════════════════════════════════
+    group('store — localStorage persistence');
+
+    {
+      // Use a try/finally so a failing assertion never leaves test pollution behind.
+      const originalHistory = localStorage.getItem('eco_history');
+      try {
+        localStorage.removeItem('eco_history');
+        assertEqual('getHistory on empty storage returns []', store.getHistory(), []);
+
+        store.addEntry({ date: '2026-06-20', total: 5, breakdown: {} });
+        assertEqual('addEntry persists one entry', store.getHistory().length, 1);
+
+        store.addEntry({ date: '2026-06-20', total: 9, breakdown: {} });
+        const afterDup = store.getHistory();
+        assertEqual('addEntry on same date replaces (not duplicates) the entry', afterDup.length, 1);
+        assertEqual('Replaced entry has the new value', afterDup[0].total, 9);
+
+        store.addEntry({ date: '2026-06-19', total: 3, breakdown: {} });
+        assertEqual('Two distinct dates produce two entries', store.getHistory().length, 2);
+      } finally {
+        if (originalHistory === null) localStorage.removeItem('eco_history');
+        else localStorage.setItem('eco_history', originalHistory);
+      }
+    }
+
+    {
+      // Malformed data resilience: store should never crash the app on bad JSON.
+      const originalHistory = localStorage.getItem('eco_history');
+      try {
+        localStorage.setItem('eco_history', 'this is not valid json {{{');
+        assertEqual('Corrupted localStorage JSON is handled gracefully (returns [])', store.getHistory(), []);
+      } finally {
+        if (originalHistory === null) localStorage.removeItem('eco_history');
+        else localStorage.setItem('eco_history', originalHistory);
+      }
+    }
+
+    {
+      const originalHistory = localStorage.getItem('eco_history');
+      try {
+        localStorage.setItem('eco_history', JSON.stringify([
+          { date: '2026-06-20', total: 5 },
+          { date: 'no-total-field' },          // malformed: missing total
+          { total: 5 },                         // malformed: missing date
+          'not even an object'                  // malformed: wrong type
+        ]));
+        assertEqual('Malformed entries are filtered out, valid ones kept', store.getHistory().length, 1);
+      } finally {
+        if (originalHistory === null) localStorage.removeItem('eco_history');
+        else localStorage.setItem('eco_history', originalHistory);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER RESULTS
+    // ═══════════════════════════════════════════════════════════
+    (function render() {
+      const groups = {};
+      results.forEach(r => {
+        groups[r.group] = groups[r.group] || [];
+        groups[r.group].push(r);
+      });
+
+      const resultsEl = document.getElementById('results');
+      Object.keys(groups).forEach(groupName => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'group';
+        const h2 = document.createElement('h2');
+        h2.textContent = groupName;
+        groupDiv.appendChild(h2);
+
+        groups[groupName].forEach(r => {
+          const testDiv = document.createElement('div');
+          testDiv.className = `test ${r.pass ? 'pass' : 'fail'}`;
+          testDiv.innerHTML = `
+            <div>
+              <div>${r.description}</div>
+              ${r.detail ? `<div class="detail">${r.detail}</div>` : ''}
+            </div>
+            <span class="status">${r.pass ? '✅ PASS' : '❌ FAIL'}</span>
+          `;
+          groupDiv.appendChild(testDiv);
+        });
+        resultsEl.appendChild(groupDiv);
+      });
+
+      const total = results.length;
+      const passed = results.filter(r => r.pass).length;
+      const failed = total - passed;
+      const summary = document.getElementById('summary');
+      summary.className = failed === 0 ? 'pass' : 'fail';
+      summary.textContent = failed === 0
+        ? `✅ All ${total} tests passed`
+        : `❌ ${failed} of ${total} tests failed (${passed} passed)`;
+
+      // Expose for headless/automated runners (e.g. Playwright) to read pass/fail programmatically.
+      window.__TEST_RESULTS__ = { total, passed, failed, results };
+    })();
+  </script>
+</body>
+</html>
